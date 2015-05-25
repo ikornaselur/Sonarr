@@ -74,7 +74,7 @@ namespace NzbDrone.Core.Notifications.Plex
                 var rawVersion = GetVersion(settings);
                 var version = new Version(Regex.Match(rawVersion, @"^(\d+\.){4}").Value.Trim('.'));
 
-                if (version >= new Version(0, 9, 12, 1))
+                if (version >= new Version(0, 9, 12, 0))
                 {
                     var preferences = GetPreferences(settings);
                     var partialScanPreference = preferences.SingleOrDefault(p => p.Id.Equals("FSEventLibraryPartialScanEnabled"));
