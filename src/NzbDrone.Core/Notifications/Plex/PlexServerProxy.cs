@@ -98,7 +98,8 @@ namespace NzbDrone.Core.Notifications.Plex
 
         public int? GetMetadataId(int sectionId, int tvdbId, string language, PlexServerSettings settings)
         {
-            var resource = String.Format("library/sections/{0}/all?guid=com.plexapp.agents.thetvdb%3A%2F%2F{1}%3Flang%3D{2}", sectionId, tvdbId, language);
+            var guid = String.Format("com.plexapp.agents.thetvdb://{0}?lang={1}", tvdbId, language);
+            var resource = String.Format("library/sections/{0}/all?guid={1}", sectionId, System.Web.HttpUtility.UrlEncode(guid));
             var request = GetPlexServerRequest(resource, Method.GET, settings);
             var client = GetPlexServerClient(settings);
             var response = client.Execute(request);
