@@ -7,6 +7,7 @@ using NzbDrone.Common.Cache;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Serializer;
+using NzbDrone.Core.Notifications.Plex.Models;
 using NzbDrone.Core.Rest;
 using RestSharp;
 
@@ -14,8 +15,12 @@ namespace NzbDrone.Core.Notifications.Plex
 {
     public interface IPlexServerProxy
     {
-        List<PlexDirectory> GetTvSections(PlexServerSettings settings);
+        List<PlexSection> GetTvSections(PlexServerSettings settings);
         void Update(int sectionId, PlexServerSettings settings);
+        void UpdateSeries(int metadataId, PlexServerSettings settings);
+        string Version(PlexServerSettings settings);
+        List<PlexPreference> Preferences(PlexServerSettings settings);
+        int? GetMetadataId(int sectionId, int tvdbId, string language, PlexServerSettings settings);
     }
 
     public class PlexServerProxy : IPlexServerProxy
@@ -29,11 +34,10 @@ namespace NzbDrone.Core.Notifications.Plex
             _logger = logger;
         }
 
-        public List<PlexDirectory> GetTvSections(PlexServerSettings settings)
+        public List<PlexSection> GetTvSections(PlexServerSettings settings)
         {
             var request = GetPlexServerRequest("library/sections", Method.GET, settings);
             var client = GetPlexServerClient(settings);
-
             var response = client.Execute(request);
 
             _logger.Trace("Sections response: {0}", response.Content);
@@ -51,11 +55,68 @@ namespace NzbDrone.Core.Notifications.Plex
             var resource = String.Format("library/sections/{0}/refresh", sectionId);
             var request = GetPlexServerRequest(resource, Method.GET, settings);
             var client = GetPlexServerClient(settings);
-
             var response = client.Execute(request);
 
             CheckForError(response.Content);
-            _logger.Debug("Update response: {0}", response.Content);
+            _logger.Trace("Update response: {0}", response.Content);
+        }
+
+        public void UpdateSeries(int metadataId, PlexServerSettings settings)
+        {
+            var resource = String.Format("library/metadata/{0}/refresh", metadataId);
+            var request = GetPlexServerRequest(resource, Method.PUT, settings);
+            var client = GetPlexServerClient(settings);
+            var response = client.Execute(request);
+
+            CheckForError(response.Content);
+            _logger.Trace("Update Series response: {0}", response.Content);
+        }
+
+        public string Version(PlexServerSettings settings)
+        {
+            var request = GetPlexServerRequest("identity", Method.GET, settings);
+            var client = GetPlexServerClient(settings);
+            var response = client.Execute(request);
+
+            CheckForError(response.Content);
+            _logger.Trace("Version response: {0}", response.Content);
+
+            return Json.Deserialize<PlexIdentity>(response.Content).Version;
+        }
+
+        public List<PlexPreference> Preferences(PlexServerSettings settings)
+        {
+            var request = GetPlexServerRequest(":/prefs", Method.GET, settings);
+            var client = GetPlexServerClient(settings);
+            var response = client.Execute(request);
+
+            CheckForError(response.Content);
+            _logger.Trace("Preferences response: {0}", response.Content);
+
+            return Json.Deserialize<PlexPreferences>(response.Content).Preferences;
+        }
+
+        public int? GetMetadataId(int sectionId, int tvdbId, string language, PlexServerSettings settings)
+        {
+            var resource = String.Format("library/sections/{0}/all?guid=com.plexapp.agents.thetvdb%3A%2F%2F{1}%3Flang%3D{2}", sectionId, tvdbId, language);
+            var request = GetPlexServerRequest(resource, Method.GET, settings);
+            var client = GetPlexServerClient(settings);
+            var response = client.Execute(request);
+
+            _logger.Trace("Sections response: {0}", response.Content);
+
+            CheckForError(response.Content);
+
+            var item = Json.Deserialize<PlexSectionResponse>(response.Content)
+                           .Items
+                           .FirstOrDefault();
+
+            if (item == null)
+            {
+                return null;
+            }
+
+            return item.Id;
         }
 
         private String Authenticate(string username, string password)
