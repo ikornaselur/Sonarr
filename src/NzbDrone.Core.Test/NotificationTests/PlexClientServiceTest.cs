@@ -9,7 +9,7 @@ namespace NzbDrone.Core.Test.NotificationTests
 {
     [TestFixture]
     
-    public class PlexProviderTest : CoreTest
+    public class PlexClientServiceTest : CoreTest
     {
         private PlexClientSettings _clientSettings;
 
