@@ -184,12 +184,16 @@ namespace NzbDrone.Core.Notifications.Plex
 
         private void CheckForError(string response)
         {
+            _logger.Trace("Checking for error");
+
             var error = Json.Deserialize<PlexError>(response);
 
             if (error != null && !error.Error.IsNullOrWhiteSpace())
             {
                 throw new PlexException(error.Error);
             }
+
+            _logger.Trace("No error detected");
         }
     }
 }
